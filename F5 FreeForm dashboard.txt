@@ -1,0 +1,233 @@
+<form theme="light">
+  <label>F5 Virtual Server and Pool Stats</label>
+  <description>Choose your Application URL, corresponding F5 Pool, and desired Sample Time (note: Sample Time grater than 24hrs. may not load.) Created by: WirelessPhreak</description>
+  <fieldset submitButton="true">
+    <input type="text" token="field1">
+      <label>Application URL</label>
+    </input>
+    <input type="text" token="field2">
+      <label>F5 Pool (optional)</label>
+    </input>
+    <input type="time" token="field3">
+      <label>Sample Time</label>
+      <default>
+        <earliest>$field3.earliest$</earliest>
+        <latest>$field3.latest$</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Real Time Unique Users</title>
+      <single>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5" | search server_name="*$field1$*" | stats count by client_address | stats count as Total</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Average Request Elapsed Time</title>
+      <single>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | eval newtime=round('req_elapsed_time'/1000)| stats avg(newtime)</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">s</option>
+        <option name="unitPosition">after</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Average Connction per Minute</title>
+      <single>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | eval count=1 | timechart per_minute(count) as transactions_per_minute | stats avg(transactions_per_minute)</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Connections Per Minute over Sample Time</title>
+      <chart>
+        <title>Sample Time Above  (broken line indicates no active connections)</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | eval count=1 | timechart per_minute(count) as transactions_per_minute</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Top 10 Clients</title>
+      <chart>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"| stats count by client_address http_method http_status node server_name url user_agent _time | search server_name="*$field1$*" | top limit=10 client_address</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Top 25 Client IP Addresses</title>
+      <table>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | iplocation client_address | stats count by client_address City Region Country | sort by -count (top limit=25 City Region Country client_address)</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Load Balancing Among Pool Members</title>
+      <chart>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | stats count by client_address http_method http_status node server_name url user_agent _time | search node="*" | top limit=10 node</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Top Requested URI</title>
+      <table>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | top limit=20 url</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>HTTP Methods Used</title>
+      <chart>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | top limit=20 http_method</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>HTTP  Status Response</title>
+      <chart>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5"server_name="*$field1$*" | top limit=20 http_status</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>F5 ASM Events (if applicable)</title>
+      <table>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5" sourcetype="f5:bigip:asm:syslog" url="*$field1$*" | top limit=20 attack_type action</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Down Pool Members</title>
+      <table>
+        <title>Sample Time Set Above</title>
+        <search>
+          <query>index="f5" F5_Pool="*$field2$*" down up | top limit=20 F5_Pool F5_pool_member</query>
+          <earliest>$field3.earliest$</earliest>
+          <latest>$field3.latest$</latest>
+        </search>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>
